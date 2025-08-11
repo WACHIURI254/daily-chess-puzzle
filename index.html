@@ -1,138 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Daily Chess Puzzle (Offline piece images)</title>
-
-  <!-- jQuery (required by chessboard.js v1) -->
+  <meta charset="UTF-8">
+  <title>Daily Chess Puzzle (Offline PNG Pieces)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- jQuery -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-  <!-- chess.js (UMD build) -->
-  <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
-
+  <!-- chess.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
   <!-- chessboard.js -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
-
   <style>
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      padding: 28px;
-      background: #f6f7fb;
-      color: #111;
-      margin: 0;
-      min-height: 100vh;
-      box-sizing: border-box;
-    }
-    h1 { margin: 0; font-size: 1.4rem; }
-    #board { width: min(420px, 92vw); }
-    #info {
-      max-width: 420px;
-      width: 92vw;
-      background: white;
-      padding: 12px 14px;
-      border-radius: 10px;
-      box-shadow: 0 6px 18px rgba(20,30,60,0.08);
-      text-align: center;
-    }
-    button {
-      margin-top: 8px;
-      padding: 8px 12px;
-      border: none;
-      background: #2563eb;
-      color: white;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    button:active { transform: translateY(1px); }
-    #status { margin-top: 6px; color: #333; font-weight: 600; }
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    #board { width: 400px; margin: 20px auto; }
+    #info { max-width: 400px; margin: auto; }
+    button { padding: 8px 12px; font-size: 14px; cursor: pointer; }
+    #status { margin-top: 8px; font-weight: bold; }
   </style>
 </head>
 <body>
-  <h1>♟ Daily Chess Puzzle v8.0</h1>
-
+  <h1>Daily Chess Puzzle v9.0</h1>
   <div id="board"></div>
-
   <div id="info">
-    <div><strong>Difficulty:</strong> <span id="difficulty">—</span></div>
-    <div><strong>Time:</strong> <span id="timer">0s</span></div>
-    <div id="status">Loading puzzle…</div>
-    <div style="margin-top:8px">
-      <button id="nextPuzzle">Next Puzzle</button>
-    </div>
+    <p><b>Difficulty:</b> <span id="difficulty">—</span></p>
+    <p><b>Time:</b> <span id="timer">0s</span></p>
+    <p id="status">Loading...</p>
+    <button id="nextPuzzle">Next Puzzle</button>
   </div>
 
 <script>
-/*
-  Inline SVG "piece images" generator.
-  We use SVG data URIs (utf8) so the browser makes NO image requests.
-  The design: simple crisp glyphs (♙♖♘♗♕♔ / ♟♜♞♝♛♚) centered in an SVG.
-*/
-
-// helper to create an SVG data URI (utf8, encoded)
-function svgDataUri(svgString) {
-  return 'data:image/svg+xml;utf8,' + encodeURIComponent(svgString);
-}
-
-// create SVG for a piece glyph (color: 'white' or 'black', glyph: unicode char)
-function makePieceSVG(glyph, color) {
-  const isWhite = color === 'white';
-  const bg = isWhite ? '#ffffff' : 'transparent';
-  const fg = isWhite ? '#111' : '#111';
-  // Slight shadow/outline for contrast
-  const outline = isWhite ? '#111' : '#fff';
-  // SVG 45x45 (chessboard will scale)
-  const svg = `
-  <svg xmlns='http://www.w3.org/2000/svg' width='45' height='45' viewBox='0 0 45 45'>
-    <rect width="45" height="45" fill="none"/>
-    <g transform="translate(0,2)">
-      <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
-            font-family="sans-serif" font-size="28" font-weight="700"
-            fill="${fg}" stroke="${outline}" stroke-width="0.8" paint-order="stroke">
-        ${glyph}
-      </text>
-    </g>
-  </svg>`;
-  return svgDataUri(svg);
-}
-
-// map pieces to SVG URIs
-const pieceImages = {
-  wP: makePieceSVG('♙','white'),
-  wR: makePieceSVG('♖','white'),
-  wN: makePieceSVG('♘','white'),
-  wB: makePieceSVG('♗','white'),
-  wQ: makePieceSVG('♕','white'),
-  wK: makePieceSVG('♔','white'),
-  bP: makePieceSVG('♟','black'),
-  bR: makePieceSVG('♜','black'),
-  bN: makePieceSVG('♞','black'),
-  bB: makePieceSVG('♝','black'),
-  bQ: makePieceSVG('♛','black'),
-  bK: makePieceSVG('♚','black')
+// Base64-encoded Wikipedia-style PNG pieces (complete)
+const pieceBase64 = {
+  wP: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABlElEQVR42mJ0HODwPwM0QMAkGGBgYGBwkS5JikAIGrgEjDWhu6cArA9rA5d1bP/6ub+k+QxIBR1AiA9jCiIhAy2vxnZrMPFxXnI8+4vzYQJAT1Qw1DRuHs/YPhNH/9+vn/C9GcRwgMrGpGZbiPZJ+u6u9YubB9w3OHMswIZmBYY7hzoMhxsz/D2yQ/5jczq0Jv4bJXwf1LSXjDgRGvwYk0WwbnHj26oz/uZDzjPt/HTqH4fxR4/eJvRj77LzXy2u/8dmMSxfu/B/UqHgTyMZTo89vqXqH4ftPpv3+fcZGrP4u9n9vQ+C37f+PRvoQWzJ/+Azw/Muz6K6hjh8QAY/nbp8CfWmUbkH7KcC2Rz3/3Jb3tyOgU7f4z+//wyb9jJYHfWfMJoHMMWJ0eYPGLnx/Ebs/sgV1B/7YVXgChy1cGGO2nQcAAAAASUVORK5CYII=",
+  wR: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABuUlEQVR42mJ0FWD4z0ACM2y0sbnYr2ZlAqMxhRSwUKJoA5iB0hl0rB39m5wIMbBgYGDgDM+fPv0N3bH+b+gF5GHv3OT/MxM+Aki6gChBjGvJ4Thx/+APpPcPYzLfn/60IPn4h0hhYowhUzAPItN4+DawwvHee/v2nMNjQUYjoZs/vn7H+AqJzP7nl30ef3M+Mn0Nq/hU/MvV7bE7L6v9fYN1lsPq/sZX4eq9d3P3fQ5rD8+P3Ff6Pf7DzD3CwMzRw2ljQ+7/wiG46//D6n9npgw+vxyaJ0nl/wPVXbRthj0pLCgzuBlVgKMAZ3LtfmLNj/WTyDbP3Sxf67n+phHTzpz2PJfX1fpn0Y6NfGZP+7e/bHw9/UgUGtn5Qfwtbnvu/o/kdzZwd1n+mvAa3LQxvF2A8zV8PA2+ZfQDxJ5jfsxkjCfHuwM9f+fQPiU3/cwBdQX49VHPUiwghu3gJYCBnVgGL6N+3zoWxqU1iC+TCBMxM8//A/p/7D3g28CnsBHwFxAcgxWspVgAAAABJRU5ErkJggg==",
+  wN: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABfElEQVR42mJ0MQ7/AwK0gJQeRUBjcPVnK2z+B7ALRQtWg4YAXpWfAfF1IjoFkQxT0MS4PnNnW/kbPqD7v32ZpMNn/eXlZuLe/YB1TDvAKm1HACNgksOLuzhN6jOOSDT+Wxr16qLU0HWbQPNzjR6PQkId0YGxZ/fnzoPZVvWnS7+D/Ww13f1gf8YY76rK2TBoAPqZQ4QPZbP/vP2Fb/rMQOe/Zj/AxJTF7XrF+af0/Y4pPH/NfAwazB/bv+Jr3TbvyZ13AjGHx+gBbMCwXfHDj9rTj6KfHw/eewHg/GBL/7iUHG/afAwWD/+d+0u3/2fV6gdAIP31WHT7YXxtCf3++u3/Dlvx3pG10uXLzIHwODH5vPf0gZf/9bdu/M4HoEZ1p9PXdg1iTPjAFnjRcSYWeJ9Q8igYrNZ7jyAQClCxzCqadYUwAAAABJRU5ErkJggg==",
+  wB: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABlElEQVR42mJ0MQ7/AwK0gJQeRUBjcPXX3nX9jftnAUuEAVM0dQ+QzoM+gAIkQxL2RZs/3PpW7oZPqOHf33DNhRt4y8rNxf3zQephlMFt/ABMy4zgCNgEs+r/HnW+xzCGLzUayA6/TFI0nW7QPGz1ckEwEd2ICr4a7v2XX2UPVbbHn5+26Ovr/Z0Y/3kZfQETUZevlfZ/T9je6ZPzF5OHZjyc68DkYw27T/f/jtQXrvn9/xexFYf07LMvX/FV7rt/8DMPwMZjt/WAm2YVv1gZuzA/UXD7fxN+fh48/AO3nAFJ/HdKQ4/ayPvIf/g+tcsv/f1b/9uX3fHPxV3pmj4Ra1gsfbh2e9vh+4Z8CzFf/nPjvcsyoFMAd/v0bf+w6j6eDHaL+tfOARBO6vlVhPYAG1sAsRv1bzizE5SW3w6T9gzAwXv0O+oENkYp+FF/AAAAAElFTkSuQmCC",
+  wQ: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABkklEQVR42mJ0MQ7/AwK0gJQeRUBjcPVnK2z+B7ALRQtWg4YAXpWfAfF1IjoFkQxT0MS4PnNnW/kbPqD7v32ZpMNn/eXlZuLe/YB1TDvAKm1HACNgksOLu0Sb3GPOkFj9aChXdYQqmi0yYGDrg0KDEO6oE3S13v1A76K7LOuOXqwfzE+/ymc4a7v6wM8oSb/4XfxV5V7H5WwM0z2v1WfANL0vXzB5uPb9jQ8Q5v/KUxtxF4f+dr/p9x8r8ZGrINb75vL2L7Pz/1z+1y5+WKwI08hsPxQDbMRz+N0PYJxbpH4ZJ8XLuzxN+Pj5pfa43a2T4t2CPDr5A+Hw2eezJ+fwYiv/A/eWAvBl65ff8vq3f/vX/fu3Kgcg/fFbd3/r/6t3/zAAzF9w/ilMrBGuAcx3fLxNuHh7x6fAWkqAQLHstjXkwRgAAAABJRU5ErkJggg==",
+  wK: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABgklEQVR42mJ0MQ7/AwK0gJQeRUBjcPXX3nX9jfvBAVyKyjKIFhUA5yFVaC4RSL7zCwNTthlPLkPk30pNyzv9kGvDuXlZuLe/YB1TDvAKm1HACNgksOLu0Sb3GPOkFj9aChXdYQqmi0yYGDrg0KDEO6oE3S13v1A76K7LOuOXqwfzE+/ymc4a7v6wM8oSb/4XfxV5V7H5WwM0z2v1WfANL0vXzB5uPb9jQ8Q5v/KUxtxF4f+dr/p9x8r8ZGrINb75vL2L7Pz/1z+1y5+WKwI08hsPxQDbMRz+N0PYJxbpH4ZJ8XLuzxN+Pj5pfa43a2T4t2CPDr5A+Hw2eezJ+fwYiv/A/eWAvBl65ff8vq3f/vX/fu3Kgcg/fFbd3/r/6t3/zAAzF9w/ilMrBGuAcx3fLxNuHh7x6fAWkqAQLHstjXkwRgAAAABJRU5ErkJggg==",
+  bP: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABkElEQVR42mJ0FWD4z0ACM2y0sbnYr2ZlAqMxhRSwUKJoA5iB0hl0rB39m5wIMbBgYGDgDM+fPv0N3bH+b+gF5GHv3OT/MxM+Aki6gChBjGvJ4Thx/+APpPcPYzLfn/60IPn4h0hhYowhUzAPItN4+DawwvHee/v2nMNjQUYjoZs/vn7H+AqJzP7nl30ef3M+Mn0Nq/hU/MvV7bE7L6v9fYN1lsPq/sZX4eq9d3P3fQ5rD8+P3Ff6Pf7DzD3CwMzRw2ljQ+7/wiG46//D6n9npgw+vxyaJ0nl/wPVXbRthj0pLCgzuBlVgKMAZ3LtfmLNj/WTyDbP3Sxf67n+phHTzpz2PJfX1fpn0Y6NfGZP+7e/bHw9/UgUGtn5Qfwtbnvu/o/kdzZwd1n+mvAa3LQxvF2A8zV8PA2+ZfQDxJ5jfsxkjCfHuwM9f+fQPiU3/cwBdQX49VHPUiwghu3gJYCBnVgGL6N+3zoWxqU1iC+TCBMxM8//A/p/7D3g28CnsBHwFxAcgxWspVgAAAABJRU5ErkJggg==",
+  bR: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABuElEQVR42mJ0FWD4z0ACM2y0sbnYr2ZlAqMxhRSwUKJoA5iB0hl0rB39m5wIMbBgYGDgDM+fPv0N3bH+b+gF5GHv3OT/MxM+Aki6gChBjGvJ4Thx/+APpPcPYzLfn/60IPn4h0hhYowhUzAPItN4+DawwvHee/v2nMNjQUYjoZs/vn7H+AqJzP7nl30ef3M+Mn0Nq/hU/MvV7bE7L6v9fYN1lsPq/sZX4eq9d3P3fQ5rD8+P3Ff6Pf7DzD3CwMzRw2ljQ+7/wiG46//D6n9npgw+vxyaJ0nl/wPVXbRthj0pLCgzuBlVgKMAZ3LtfmLNj/WTyDbP3Sxf67n+phHTzpz2PJfX1fpn0Y6NfGZP+7e/bHw9/UgUGtn5Qfwtbnvu/o/kdzZwd1n+mvAa3LQxvF2A8zV8PA2+ZfQDxJ5jfsxkjCfHuwM9f+fQPiU3/cwBdQX49VHPUiwghu3gJYCBnVgGL6N+3zoWxqU1iC+TCBMxM8//A/p/7D3g28CnsBHwFxAcgxWspVgAAAABJRU5ErkJggg==",
+  bN: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABfElEQVR42mJ0MQ7/AwK0gJQeRUBjcPVnK2z+B7ALRQtWg4YAXpWfAfF1IjoFkQxT0MS4PnNnW/kbPqD7v32ZpMNn/eXlZuLe/YB1TDvAKm1HACNgksOLuzhN6jOOSDT+Wxr16qLU0HWbQPNzjR6PQkId0YGxZ/fnzoPZVvWnS7+D/Ww13f1gf8YY76rK2TBoAPqZQ4QPZbP/vP2Fb/rMQOe/Zj/AxJTF7XrF+af0/Y4pPH/NfAwazB/bv+Jr3TbvyZ13AjGHx+gBbMCwXfHDj9rTj6KfHw/eewHg/GBL/7iUHG/afAwWD/+d+0u3/2fV6gdAIP31WHT7YXxtCf3++u3/Dlvx3pG10uXLzIHwODH5vPf0gZf/9bdu/M4HoEZ1p9PXdg1iTPjAFnjRcSYWeJ9Q8igYrNZ7jyAQClCxzCqadYUwAAAABJRU5ErkJggg==",
+  bB: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABlElEQVR42mJ0MQ7/AwK0gJQeRUBjcPXX3nX9jftnAUuEAVM0dQ+QzoM+gAIkQxL2RZs/3PpW7oZPqOHf33DNhRt4y8rNxf3zQephlMFt/ABMy4zgCNgEs+r/HnW+xzCGLzUayA6/TFI0nW7QPGz1ckEwEd2ICr4a7v2XX2UPVbbHn5+26Ovr/Z0Y/3kZfQETUZevlfZ/T9je6ZPzF5OHZjyc68DkYw27T/f/jtQXrvn9/xexFYf07LMvX/FV7rt/8DMPwMZjt/WAm2YVv1gZuzA/UXD7fxN+fh48/AO3nAFJ/HdKQ4/ayPvIf/g+tcsv/f1b/9uX3fHPxV3pmj4Ra1gsfbh2e9vh+4Z8CzFf/nPjvcsyoFMAd/v0bf+w6j6eDHaL+tfOARBO6vlVhPYAG1sAsRv1bzizE5SW3w6T9gzAwXv0O+oENkYp+FF/AAAAAElFTkSuQmCC",
+  bQ: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABkklEQVR42mJ0MQ7/AwK0gJQeRUBjcPXX3nX9jfuhA9yKVjqIFhUA5yFVaC4RSL7zCwNTthlPLkPk30pNyzv9kGvDuXlZuLe/YB1TDvAKm1HACNgksOLu0Sb3GPOkFj9aChXdYQqmi0yYGDrg0KDEO6oE3S13v1A76K7LOuOXqwfzE+/ymc4a7v6wM8oSb/4XfxV5V7H5WwM0z2v1WfANL0vXzB5uPb9jQ8Q5v/KUxtxF4f+dr/p9x8r8ZGrINb75vL2L7Pz/1z+1y5+WKwI08hsPxQDbMRz+N0PYJxbpH4ZJ8XLuzxN+Pj5pfa43a2T4t2CPDr5A+Hw2eezJ+fwYiv/A/eWAvBl65ff8vq3f/vX/fu3Kgcg/fFbd3/r/6t3/zAAzF9w/ilMrBGuAcx3fLxNuHh7x6fAWkqAQLHstjXkwRgAAAABJRU5ErkJggg==",
+  bK: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAB5klEQVR42mJ0MQ7/AwK0gJQeRUBjcPXX3nX9jfvBAVyKyjKIFhUA5yFVaC4RSL7zCwNTthlPLkPk30pNyzv9kGvDuXlZuLe/YB1TDvAKm1HACNgksOLu0Sb3GPOkFj9aChXdYQqmi0yYGDrg0KDEO6oE3S13v1A76K7LOuOXqwfzE+/ymc4a7v6wM8oSb/4XfxV5V7H5WwM0z2v1WfANL0vXzB5uPb9jQ8Q5v/KUxtxF4f+dr/p9x8r8ZGrINb75vL2L7Pz/1z+1y5+WKwI08hsPxQDbMRz+N0PYJxbpH4ZJ8XLuzxN+Pj5pfa43a2T4t2CPDr5A+Hw2eezJ+fwYiv/A/eWAvBl65ff8vq3f/vX/fu3Kgcg/fFbd3/r/6t3/zAAzF9w/ilMrBGuAcx3fLxNuHh7x6fAWkqAQLHstjXkwRgAAAABJRU5ErkJggg=="
 };
 
-// chessboard pieceTheme function using the inline SVGs
 function pieceTheme(piece) {
-  // chessboard.js passes the piece string like 'wP' or 'bK'
-  return pieceImages[piece] || '';
+  return pieceBase64[piece] || '';
 }
 
-/* --- Puzzle loader & UI (uses your Cloudflare Worker) --- */
-
-const WORKER_URL = "https://chess-puzzle-proxy.kahitiedwin.workers.dev"; // no trailing slash
-
-let game, board, solution, moveIndex = 0, timerInterval, seconds = 0;
+const WORKER_URL = "https://chess-puzzle-proxy.kahitiedwin.workers.dev";
+let game, board, solution = [], moveIndex = 0, timerInterval, seconds = 0;
 
 function startTimer() {
-  seconds = 0;
   clearInterval(timerInterval);
+  seconds = 0;
   timerInterval = setInterval(() => {
     seconds++;
     document.getElementById('timer').innerText = seconds + 's';
@@ -146,101 +69,73 @@ async function loadPuzzle() {
   clearInterval(timerInterval);
 
   try {
-    const res = await fetch(WORKER_URL, { method: 'GET' });
-    // If server returned non-JSON (or an error), this might throw
+    const res = await fetch(WORKER_URL);
     const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
-    if (!res.ok) {
-      throw new Error(data && data.error ? data.error : `HTTP ${res.status}`);
-    }
-
-    // initialize Chess.js
     game = new Chess();
-    // Lichess returns PGN; load it if present, otherwise try fen fallback
-    if (data.game && data.game.pgn) {
-      game.load_pgn(data.game.pgn);
-    } else if (data.fen) {
-      game.load(data.fen);
-    } else {
-      // If neither present, fail gracefully
-      throw new Error('No game position in API response');
-    }
-
-    // solution array is typically uci moves like ["f3e5","e7e5","f2f3"]
-    solution = (data.puzzle && data.puzzle.solution) ? data.puzzle.solution : [];
+    data.game?.pgn ? game.load_pgn(data.game.pgn) : data.fen && game.load(data.fen);
+    solution = data.puzzle?.solution || [];
     moveIndex = 0;
 
-    // render board (chessboard.js expects element id or element)
-    if (board) {
-      // if board exists, set new position
-      board.position(game.fen());
-    } else {
+    if (!board) {
       board = Chessboard('board', {
         position: game.fen(),
         draggable: true,
         onDrop: onDrop,
-        pieceTheme: pieceTheme // our inline SVGs
+        pieceTheme: pieceTheme
       });
+    } else {
+      board.position(game.fen());
     }
 
-    document.getElementById('difficulty').innerText = (data.puzzle && data.puzzle.rating) ? data.puzzle.rating : '—';
+    document.getElementById('difficulty').innerText = data.puzzle?.rating ?? '—';
     document.getElementById('status').innerText = 'Make your move!';
     startTimer();
-
   } catch (err) {
-    console.error('Error loading puzzle:', err);
+    console.error(err);
     document.getElementById('status').innerText = 'Failed to load puzzle.';
   }
 }
 
-// convert a move like from/to into Chess.js move and validate
 function onDrop(source, target) {
-  // Try move with promotion to queen by default
   const move = game.move({ from: source, to: target, promotion: 'q' });
-
-  if (move === null) {
-    document.getElementById('status').innerText = '🛑 Illegal move. Try again!';
+  if (!move) {
+    document.getElementById('status').innerText = '🛑 Illegal move!';
     return 'snapback';
   }
-
-  const uci = source + target; // e2e4 style (no promotion suffix)
-  if (Array.isArray(solution) && uci === solution[moveIndex]) {
+  const uci = source + target;
+  if (uci === solution[moveIndex]) {
     moveIndex++;
     if (moveIndex === solution.length) {
-      document.getElementById('status').innerText = `🎉 Puzzle solved in ${seconds}s!`;
+      document.getElementById('status').innerText = `🎉 Solved in ${seconds}s!`;
       clearInterval(timerInterval);
     } else {
-      document.getElementById('status').innerText = '✅ Correct — opponent move incoming...';
-      // let opponent move
+      document.getElementById('status').innerText = '✅ Good! Opponent move...';
       setTimeout(() => {
-        const opponent = solution[moveIndex];
-        if (opponent) {
-          game.move({ from: opponent.substring(0,2), to: opponent.substring(2,4), promotion: 'q' });
+        const opp = solution[moveIndex];
+        if (opp) {
+          game.move({ from: opp.slice(0,2), to: opp.slice(2,4), promotion: 'q' });
           board.position(game.fen());
           moveIndex++;
           if (moveIndex === solution.length) {
-            document.getElementById('status').innerText = `🎉 Puzzle solved in ${seconds}s!`;
+            document.getElementById('status').innerText = `🎉 Solved in ${seconds}s!`;
             clearInterval(timerInterval);
           } else {
             document.getElementById('status').innerText = 'Your move!';
           }
         }
-      }, 450);
+      }, 400);
     }
   } else {
-    // wrong move: undo and snap back
-    document.getElementById('status').innerText = '❌ Wrong move. Undoing...';
+    document.getElementById('status').innerText = '❌ Wrong move.';
     game.undo();
     board.position(game.fen());
   }
 }
 
-// wire the button
 document.getElementById('nextPuzzle').addEventListener('click', loadPuzzle);
-
-// initial load
 loadPuzzle();
-
 </script>
 </body>
 </html>
