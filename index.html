@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <title>Daily Chess Puzzle</title>
 
+  <!-- ✅ jQuery (needed for chessboard.js v1.0.0) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
   <!-- ✅ Chess.js (UMD build, works in browsers) -->
   <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
 
@@ -38,7 +41,7 @@
   </style>
 </head>
 <body>
-  <h1>Daily Chess Puzzle V4.0</h1>
+  <h1>Daily Chess Puzzle v5.0</h1>
   <div id="board"></div>
   <p id="status"></p>
   <button id="nextPuzzle">Next Puzzle</button>
@@ -61,10 +64,10 @@
 
         const data = await res.json();
 
-        game = new Chess(); // ✅ Uses the global Chess object
+        game = new Chess(); // ✅ Uses global Chess object
         game.load_pgn(data.game.pgn);
 
-        board = Chessboard(boardElement, {
+        board = Chessboard('board', {
           position: game.fen(),
           draggable: false
         });
