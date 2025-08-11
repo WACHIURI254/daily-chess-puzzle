@@ -9,7 +9,8 @@
 <style>
   body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f4; }
   #board { width: 400px; margin: 20px auto; }
-  #info { margin-top: 10px; }
+  #info { margin-top: 10px; font-size: 16px; }
+  #timer { font-size: 18px; color: #d9534f; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -18,11 +19,23 @@
 <div id="board"></div>
 <div id="info">
   <p><b>Difficulty:</b> <span id="difficulty"></span></p>
+  <p><b>Time:</b> <span id="timer">0s</span></p>
   <p id="status"></p>
 </div>
 
 <script>
 const WORKER_URL = "https://chess-puzzle-proxy.kahitiedwin.workers.dev/";
+
+let game, solution, moveIndex = 0, board, timerInterval, seconds = 0;
+
+function startTimer() {
+  seconds = 0;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    seconds++;
+    document.getElementById("timer").innerText = seconds + "s";
+  }, 1000);
+}
 
 async function loadPuzzle() {
   try {
@@ -30,32 +43,46 @@ async function loadPuzzle() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
 
-    const game = new Chess();
+    game = new Chess();
     game.load_pgn(data.game.pgn);
 
-    const solution = data.puzzle.solution;
-    const fen = game.fen();
+    solution = data.puzzle.solution;
+    moveIndex = 0;
 
     document.getElementById("difficulty").innerText = data.puzzle.rating;
 
-    const board = Chessboard('board', {
-      position: fen,
+    board = Chessboard('board', {
+      position: game.fen(),
       draggable: true,
-      onDrop: (source, target) => {
-        const move = game.move({ from: source, to: target, promotion: 'q' });
-        if (move === null) return 'snapback';
-        if (move.san === solution[0]) {
-          document.getElementById("status").innerText = "✅ Correct first move!";
-        } else {
-          document.getElementById("status").innerText = "❌ Try again!";
-        }
-        board.position(game.fen());
-      }
+      onDrop: onDrop
     });
+
+    startTimer();
 
   } catch (err) {
     document.getElementById("status").innerText = "Failed to load puzzle.";
     console.error(err);
+  }
+}
+
+function onDrop(source, target) {
+  const move = game.move({ from: source, to: target, promotion: 'q' });
+  if (move === null) return 'snapback';
+
+  const uci = source + target; // Convert to UCI format
+
+  if (uci === solution[moveIndex]) {
+    moveIndex++;
+    if (moveIndex === solution.length) {
+      document.getElementById("status").innerText = `🎉 Puzzle solved in ${seconds}s!`;
+      clearInterval(timerInterval);
+    } else {
+      document.getElementById("status").innerText = "✅ Correct! Next move...";
+    }
+  } else {
+    document.getElementById("status").innerText = "❌ Wrong move. Try again!";
+    game.undo();
+    board.position(game.fen());
   }
 }
 
