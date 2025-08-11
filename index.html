@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Daily Chess Puzzle</title>
 
-<!-- ✅ Chess.js (UMD build for browsers) -->
-<script src="https://cdn.jsdelivr.net/npm/chess.js@0.13.4/dist/chess.min.js"></script>
+<!-- ✅ Chess.js UMD build -->
+<script src="https://cdn.jsdelivr.net/gh/jhlywa/chess.js@master/chess.min.js"></script>
 
 <!-- ✅ Chessboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
@@ -64,7 +64,7 @@
 </style>
 </head>
 <body>
-<h1>♟ Daily Chess Puzzle V2.0</h1>
+<h1>♟ Daily Chess Puzzle v3.0</h1>
 <div id="board"></div>
 <div id="info">
   <p><b>Difficulty:</b> <span id="difficulty">N/A</span></p>
@@ -74,7 +74,7 @@
 </div>
 
 <script>
-const WORKER_URL = "https://chess-puzzle-proxy.kahitiedwin.workers.dev"; // No trailing slash
+const WORKER_URL = "https://chess-puzzle-proxy.kahitiedwin.workers.dev";
 
 let game, solution, moveIndex = 0, board, timerInterval, seconds = 0;
 
@@ -168,4 +168,3 @@ loadPuzzle();
 </script>
 </body>
 </html>
-
