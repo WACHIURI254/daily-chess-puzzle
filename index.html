@@ -2,82 +2,59 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Daily Chess Puzzle</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css"/>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #1a1a1a;
-    color: white;
-    text-align: center;
-    padding: 20px;
-  }
-  #board {
-    margin: auto;
-    width: 400px;
-  }
-  .info {
-    margin-top: 10px;
-    font-size: 1.2em;
-  }
-  .timer {
-    color: #ff9800;
-    font-weight: bold;
-  }
+  body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f4; }
+  #board { width: 400px; margin: 20px auto; }
+  #info { margin-top: 10px; }
 </style>
-<link rel="stylesheet" href="https://unpkg.com/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
-<script src="https://unpkg.com/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
 </head>
 <body>
 
-<h1>♟️ Daily Chess Puzzle</h1>
+<h1>♟ Daily Chess Puzzle</h1>
 <div id="board"></div>
-<div class="info">
-  <p id="rating">Difficulty: Loading...</p>
-  <p>Time Elapsed: <span class="timer" id="timer">0</span> sec</p>
+<div id="info">
+  <p><b>Difficulty:</b> <span id="difficulty"></span></p>
+  <p id="status"></p>
 </div>
 
 <script>
 const WORKER_URL = "https://chess-puzzle-proxy.kahitiedwin.workers.dev/";
-let timer = 0;
-let timerInterval;
-
-function startTimer() {
-  timer = 0;
-  clearInterval(timerInterval);
-  timerInterval = setInterval(() => {
-    timer++;
-    document.getElementById("timer").textContent = timer;
-  }, 1000);
-}
 
 async function loadPuzzle() {
   try {
     const res = await fetch(WORKER_URL);
-    if (!res.ok) throw new Error("Network error");
-    const puzzleData = await res.json();
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
 
-    // Extract data
-    const fen = puzzleData.game.fen;
-    const rating = puzzleData.puzzle.rating;
+    const game = new Chess();
+    game.load_pgn(data.game.pgn);
 
-    // Display difficulty
-    let difficulty = "Unknown";
-    if (rating < 1400) difficulty = "Easy";
-    else if (rating < 1800) difficulty = "Intermediate";
-    else difficulty = "Hard";
+    const solution = data.puzzle.solution;
+    const fen = game.fen();
 
-    document.getElementById("rating").textContent =
-      `Difficulty: ${difficulty} (${rating})`;
+    document.getElementById("difficulty").innerText = data.puzzle.rating;
 
-    // Load chessboard
-    Chessboard("board", { position: fen });
+    const board = Chessboard('board', {
+      position: fen,
+      draggable: true,
+      onDrop: (source, target) => {
+        const move = game.move({ from: source, to: target, promotion: 'q' });
+        if (move === null) return 'snapback';
+        if (move.san === solution[0]) {
+          document.getElementById("status").innerText = "✅ Correct first move!";
+        } else {
+          document.getElementById("status").innerText = "❌ Try again!";
+        }
+        board.position(game.fen());
+      }
+    });
 
-    // Start timer
-    startTimer();
   } catch (err) {
-    document.getElementById("rating").textContent = "Failed to load puzzle.";
+    document.getElementById("status").innerText = "Failed to load puzzle.";
     console.error(err);
   }
 }
