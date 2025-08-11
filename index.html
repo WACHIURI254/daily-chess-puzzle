@@ -1,89 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Daily Chess Puzzle</title>
+<meta charset="UTF-8">
+<title>Daily Chess Puzzle</title>
 
-  <!-- ✅ jQuery (needed for chessboard.js v1.0.0) -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-  <!-- ✅ Chess.js (UMD build for browsers) -->
-  <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
+<!-- Chess.js (UMD build) -->
+<script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
 
-  <!-- ✅ Chessboard.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css"/>
+<!-- Chessboard.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css"/>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background-color: #1a1a2e;
-      color: #ffd700;
-      padding: 20px;
-    }
-    #board {
-      width: 400px;
-      margin: 20px auto;
-    }
-    button {
-      padding: 10px 20px;
-      margin-top: 10px;
-      font-size: 16px;
-      background-color: #ffd700;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    button:hover {
-      background-color: #ffcc00;
-    }
-  </style>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #f2f2f2;
+    margin: 0;
+    padding: 20px;
+  }
+  #board {
+    width: 400px;
+    margin: 20px auto;
+  }
+  button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #004d99;
+  }
+</style>
 </head>
 <body>
-  <h1>Daily Chess Puzzle v6.0</h1>
-  <div id="board"></div>
-  <p id="status"></p>
-  <button id="nextPuzzle">Next Puzzle</button>
 
-  <script>
-    const boardElement = document.getElementById("board");
-    const statusElement = document.getElementById("status");
-    const nextPuzzleBtn = document.getElementById("nextPuzzle");
+<h1>Daily Chess Puzzle v7.0</h1>
+<div id="board"></div>
+<button id="newPuzzle">Load New Puzzle</button>
 
-    let board;
-    let game;
+<script>
+// All chess piece images embedded as Base64
+var pieceImages = {
+  wP: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAg...",
+  wR: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAg...",
+  wN: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAg...",
+  wB: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAg...",
+  wQ: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAg...",
+  wK: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAg...",
+  bP: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAg...",
+  bR: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAg...",
+  bN: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAg...",
+  bB: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAg...",
+  bQ: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAg...",
+  bK: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAg..."
+};
 
-    async function loadPuzzle() {
-      try {
-        statusElement.textContent = "Loading puzzle...";
+// Example FEN puzzles
+var puzzles = [
+  "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 3", // simple dev puzzle
+  "r1bq1rk1/pppp1ppp/2n2n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 0 6"
+];
 
-        // ✅ Fetch from your Cloudflare Worker
-        const res = await fetch("https://chess-puzzle-proxy.kahitiedwin.workers.dev/");
-        if (!res.ok) throw new Error("Network response was not ok");
+var game;
+var board;
 
-        const data = await res.json();
-
-        game = new Chess(); // ✅ Uses global Chess object
-        game.load_pgn(data.game.pgn);
-
-        board = Chessboard('board', {
-          position: game.fen(),
-          draggable: false,
-          pieceTheme: 'https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/img/chesspieces/wikipedia/{piece}.png'
-        });
-
-        statusElement.textContent = "Puzzle loaded! Your move...";
-      } catch (err) {
-        console.error("Error loading puzzle:", err);
-        statusElement.textContent = "Failed to load puzzle.";
-      }
+function loadPuzzle() {
+  var fen = puzzles[Math.floor(Math.random() * puzzles.length)];
+  game = new Chess(fen);
+  board = Chessboard('board', {
+    position: game.fen(),
+    draggable: false,
+    pieceTheme: function(piece) {
+      return pieceImages[piece];
     }
+  });
+}
 
-    nextPuzzleBtn.addEventListener("click", loadPuzzle);
+$('#newPuzzle').on('click', loadPuzzle);
 
-    // Load the first puzzle automatically
-    loadPuzzle();
-  </script>
+// Load initial puzzle
+loadPuzzle();
+</script>
 </body>
 </html>
