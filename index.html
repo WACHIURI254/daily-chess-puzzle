@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Chess Puzzle</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #1a1a1a;
+    color: white;
+    text-align: center;
+    padding: 20px;
+  }
+  #board {
+    margin: auto;
+    width: 400px;
+  }
+  .info {
+    margin-top: 10px;
+    font-size: 1.2em;
+  }
+  .timer {
+    color: #ff9800;
+    font-weight: bold;
+  }
+</style>
+<link rel="stylesheet" href="https://unpkg.com/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="https://unpkg.com/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+</head>
+<body>
+
+<h1>♟️ Daily Chess Puzzle</h1>
+<div id="board"></div>
+<div class="info">
+  <p id="rating">Difficulty: Loading...</p>
+  <p>Time Elapsed: <span class="timer" id="timer">0</span> sec</p>
+</div>
+
+<script>
+const WORKER_URL = "https://chess-puzzle-proxy.kahitiedwin.workers.dev/";
+let timer = 0;
+let timerInterval;
+
+function startTimer() {
+  timer = 0;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timer++;
+    document.getElementById("timer").textContent = timer;
+  }, 1000);
+}
+
+async function loadPuzzle() {
+  try {
+    const res = await fetch(WORKER_URL);
+    if (!res.ok) throw new Error("Network error");
+    const puzzleData = await res.json();
+
+    // Extract data
+    const fen = puzzleData.game.fen;
+    const rating = puzzleData.puzzle.rating;
+
+    // Display difficulty
+    let difficulty = "Unknown";
+    if (rating < 1400) difficulty = "Easy";
+    else if (rating < 1800) difficulty = "Intermediate";
+    else difficulty = "Hard";
+
+    document.getElementById("rating").textContent =
+      `Difficulty: ${difficulty} (${rating})`;
+
+    // Load chessboard
+    Chessboard("board", { position: fen });
+
+    // Start timer
+    startTimer();
+  } catch (err) {
+    document.getElementById("rating").textContent = "Failed to load puzzle.";
+    console.error(err);
+  }
+}
+
+loadPuzzle();
+</script>
+
+</body>
+</html>
