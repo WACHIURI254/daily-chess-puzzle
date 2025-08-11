@@ -30,49 +30,24 @@ async function loadPuzzle() {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
 
-    // Defensive: Check structure
-    if (!data || !data.puzzle || !data.game || !data.puzzle.solution) {
-      throw new Error("Invalid puzzle data");
-    }
-
     const game = new Chess();
-    // Prefer PGN if available, else fallback to FEN
-    if (data.game.pgn) {
-      game.load_pgn(data.game.pgn);
-    } else if (data.game.fen) {
-      game.load(data.game.fen);
-    } else {
-      throw new Error("No PGN or FEN provided.");
-    }
+    game.load_pgn(data.game.pgn);
 
     const solution = data.puzzle.solution;
-    if (!Array.isArray(solution) || solution.length === 0) {
-      throw new Error("No solution moves found.");
-    }
     const fen = game.fen();
 
-    document.getElementById("difficulty").innerText = data.puzzle.rating || "N/A";
+    document.getElementById("difficulty").innerText = data.puzzle.rating;
 
     const board = Chessboard('board', {
       position: fen,
       draggable: true,
       onDrop: (source, target) => {
-        // Try making the move
         const move = game.move({ from: source, to: target, promotion: 'q' });
         if (move === null) return 'snapback';
-
-        // Accept either SAN or UCI notation for first move
-        const firstSolutionSAN = solution[0];
-        const firstSolutionUCI = game.move_to_san
-          ? game.move_to_san(solution[0]) // If API gives UCI, convert to SAN (if chess.js supports)
-          : solution[0];
-
-        if (move.san === firstSolutionSAN || move.uci === firstSolutionUCI) {
+        if (move.san === solution[0]) {
           document.getElementById("status").innerText = "✅ Correct first move!";
         } else {
           document.getElementById("status").innerText = "❌ Try again!";
-          // Optionally, undo the move for retry
-          game.undo();
         }
         board.position(game.fen());
       }
