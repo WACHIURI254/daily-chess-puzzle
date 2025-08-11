@@ -2,92 +2,216 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Daily Chess Puzzle</title>
+<!-- Chess.js library for game logic -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+<!-- Chessboard.js library for UI -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+<!-- Chessboard.js CSS for styling the board -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css"/>
 <style>
-  body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f4; }
-  #board { width: 400px; margin: 20px auto; }
-  #info { margin-top: 10px; font-size: 16px; }
-  #timer { font-size: 18px; color: #d9534f; font-weight: bold; }
+  /* Basic styling for the body */
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: #f4f4f4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh; /* Ensure full viewport height */
+    margin: 0;
+    padding: 20px;
+    box-sizing: border-box; /* Include padding in element's total width and height */
+  }
+  /* Heading style */
+  h1 {
+    color: #333;
+    margin-bottom: 20px;
+  }
+  /* Chessboard container styling */
+  #board {
+    width: min(100%, 400px); /* Responsive width, max 400px */
+    margin: 20px auto;
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    overflow: hidden; /* Ensures chessboard content respects border-radius */
+  }
+  /* Information panel styling */
+  #info {
+    margin-top: 10px;
+    font-size: 16px;
+    background: #fff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    max-width: 400px; /* Match board width */
+    width: min(100%, 400px);
+    box-sizing: border-box;
+  }
+  /* Paragraph spacing within info panel */
+  #info p {
+    margin: 8px 0;
+  }
+  /* Timer display styling */
+  #timer {
+    font-size: 18px;
+    color: #d9534f;
+    font-weight: bold;
+  }
+  /* Status message styling */
+  #status {
+    color: #337ab7; /* A neutral blue for status */
+    font-weight: bold;
+  }
 </style>
 </head>
 <body>
-
 <h1>♟ Daily Chess Puzzle</h1>
 <div id="board"></div>
 <div id="info">
-  <p><b>Difficulty:</b> <span id="difficulty"></span></p>
-  <p><b>Time:</b> <span id="timer">0s</span></p>
-  <p id="status"></p>
+<p><b>Difficulty:</b> <span id="difficulty">N/A</span></p>
+<p><b>Time:</b> <span id="timer">0s</span></p>
+<p id="status">Loading puzzle...</p>
 </div>
-
 <script>
+// URL for the Cloudflare Worker proxy
 const WORKER_URL = "https://chess-puzzle-proxy.kahitiedwin.workers.dev/";
 
+// Global variables to manage game state
 let game, solution, moveIndex = 0, board, timerInterval, seconds = 0;
 
+/**
+ * Starts or resets the timer for the puzzle.
+ * The timer updates the 'timer' span every second.
+ */
 function startTimer() {
   seconds = 0;
-  clearInterval(timerInterval);
+  clearInterval(timerInterval); // Clear any existing timer to prevent multiple timers running
   timerInterval = setInterval(() => {
     seconds++;
     document.getElementById("timer").innerText = seconds + "s";
   }, 1000);
 }
 
+/**
+ * Loads a chess puzzle from the Cloudflare Worker.
+ * Handles fetching data, initializing the Chess.js game, and setting up the Chessboard.js UI.
+ */
 async function loadPuzzle() {
+  // Reset UI elements and stop any active timer before loading a new puzzle
+  document.getElementById("status").innerText = "Loading puzzle...";
+  document.getElementById("difficulty").innerText = "N/A";
+  document.getElementById("timer").innerText = "0s";
+  clearInterval(timerInterval);
+
   try {
+    // Attempt to fetch puzzle data from the Cloudflare Worker
     const res = await fetch(WORKER_URL);
-    if (!res.ok) throw new Error("HTTP " + res.status);
+
+    // Check if the HTTP response was successful (status code 200-299)
+    if (!res.ok) {
+      // If not successful, try to get the response body for more detailed error info
+      const errorText = await res.text();
+      throw new Error(`HTTP error! Status: ${res.status}, Message: ${errorText}`);
+    }
+
+    // Parse the JSON data received from the worker
     const data = await res.json();
 
+    // Initialize a new Chess.js game instance
     game = new Chess();
+    // Load the game position from the PGN provided by the worker
     game.load_pgn(data.game.pgn);
 
+    // Store the puzzle solution (an array of UCI moves)
     solution = data.puzzle.solution;
-    moveIndex = 0;
+    moveIndex = 0; // Reset the current move index for the new puzzle
 
+    // Update the difficulty display
     document.getElementById("difficulty").innerText = data.puzzle.rating;
 
+    // Initialize the chessboard-js UI component
     board = Chessboard('board', {
-      position: game.fen(),
-      draggable: true,
-      onDrop: onDrop
+      position: game.fen(), // Set the initial board position using FEN
+      draggable: true, // Allow users to drag and drop pieces
+      onDrop: onDrop, // Register the onDrop function to handle user moves
     });
 
+    // Update status and start the timer
+    document.getElementById("status").innerText = "Make your move!";
     startTimer();
-
   } catch (err) {
-    document.getElementById("status").innerText = "Failed to load puzzle.";
-    console.error(err);
+    // Display a user-friendly error message if loading fails
+    document.getElementById("status").innerText = "Failed to load puzzle. Please try again later.";
+    // Log the full error to the console for debugging purposes
+    console.error("Error loading puzzle:", err);
   }
 }
 
+/**
+ * Callback function executed when a piece is dropped on the chessboard.
+ * It validates the user's move against the puzzle solution and updates the game state.
+ * @param {string} source - The source square of the piece (e.g., 'e2').
+ * @param {string} target - The target square where the piece was dropped (e.g., 'e4').
+ * @returns {string|void} - Returns 'snapback' if the move is illegal or incorrect, otherwise void.
+ */
 function onDrop(source, target) {
+  // Attempt to make the move using Chess.js. Assume 'q' for promotion for simplicity.
   const move = game.move({ from: source, to: target, promotion: 'q' });
-  if (move === null) return 'snapback';
 
-  const uci = source + target; // Convert to UCI format
+  // If Chess.js indicates an illegal move, snap the piece back to its original position
+  if (move === null) {
+    document.getElementById("status").innerText = "🛑 Illegal move. Try again!";
+    return 'snapback';
+  }
 
+  // Convert the move to UCI format (e.g., 'e2e4') to compare with the solution array
+  const uci = source + target;
+
+  // Check if the user's move matches the current expected move in the solution
   if (uci === solution[moveIndex]) {
-    moveIndex++;
+    moveIndex++; // Advance to the next move in the solution array
+
+    // Check if all moves in the solution have been made (puzzle solved)
     if (moveIndex === solution.length) {
       document.getElementById("status").innerText = `🎉 Puzzle solved in ${seconds}s!`;
-      clearInterval(timerInterval);
+      clearInterval(timerInterval); // Stop the timer
     } else {
-      document.getElementById("status").innerText = "✅ Correct! Next move...";
+      // Correct move, but puzzle is not yet solved. Indicate opponent's turn.
+      document.getElementById("status").innerText = "✅ Correct! Now, it's opponent's turn...";
+      // Introduce a short delay before making the opponent's move for better user experience
+      setTimeout(() => {
+        const opponentMove = solution[moveIndex];
+        // Ensure opponentMove exists before attempting to make it
+        if (opponentMove) {
+          // Make the opponent's move using Chess.js
+          game.move({ from: opponentMove.substring(0, 2), to: opponentMove.substring(2, 4), promotion: 'q' });
+          board.position(game.fen()); // Update the chessboard UI to reflect the opponent's move
+          moveIndex++; // Advance the move index for the next player move
+
+          // Check again if the puzzle is now solved after opponent's move (e.g., if it was the last move)
+          if (moveIndex === solution.length) {
+            document.getElementById("status").innerText = `🎉 Puzzle solved in ${seconds}s!`;
+            clearInterval(timerInterval);
+          } else {
+            // Puzzle still ongoing, prompt user for their next move
+            document.getElementById("status").innerText = "Make your next move!";
+          }
+        }
+      }, 500); // 500ms delay
     }
   } else {
-    document.getElementById("status").innerText = "❌ Wrong move. Try again!";
-    game.undo();
-    board.position(game.fen());
+    // Incorrect move: Inform the user, undo the move, and reset the board
+    document.getElementById("status").innerText = "❌ Wrong move. Undo and try again!";
+    game.undo(); // Revert the last move
+    board.position(game.fen()); // Update the board UI to show the position before the wrong move
   }
 }
 
+// Automatically load the puzzle when the page loads
 loadPuzzle();
 </script>
-
 </body>
 </html>
