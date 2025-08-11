@@ -4,11 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Daily Chess Puzzle</title>
-<!-- Chess.js -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
-<!-- Chessboard.js -->
+
+<!-- ✅ Chess.js (UMD build for browsers) -->
+<script src="https://cdn.jsdelivr.net/npm/chess.js@0.13.4/dist/chess.min.js"></script>
+
+<!-- ✅ Chessboard.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css"/>
+
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -71,7 +74,7 @@
 </div>
 
 <script>
-const WORKER_URL = "https://chess-puzzle-proxy.kahitiedwin.workers.dev"; // no slash
+const WORKER_URL = "https://chess-puzzle-proxy.kahitiedwin.workers.dev"; // No trailing slash
 
 let game, solution, moveIndex = 0, board, timerInterval, seconds = 0;
 
@@ -91,7 +94,7 @@ async function loadPuzzle() {
   clearInterval(timerInterval);
 
   try {
-    const res = await fetch(WORKER_URL, { method: "GET" });
+    const res = await fetch(WORKER_URL);
     const data = await res.json();
 
     if (!res.ok) {
