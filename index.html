@@ -41,7 +41,7 @@
   #info div {
     margin: 6px 0;
   }
-  #nextPuzzle {
+  #nextPuzzle, #nextMove, #resetPuzzle {
     margin-top: 10px;
     padding: 8px 14px;
     border: none;
@@ -51,8 +51,14 @@
     font-weight: 600;
     cursor: pointer;
   }
-  #nextPuzzle:hover {
+  #nextPuzzle:hover, #nextMove:hover, #resetPuzzle:hover {
     background-color: #1d4ed8;
+  }
+  #controls {
+    margin-top: 10px;
+  }
+  #controls button {
+    margin-right: 10px;
   }
 </style>
 </head>
@@ -66,6 +72,10 @@
   <div><strong>Time:</strong> <span id="timer">0s</span></div>
   <div id="status">Loading puzzle…</div>
   <button id="nextPuzzle">Next Puzzle</button>
+  <div id="controls">
+    <button id="nextMove">Next Move</button>
+    <button id="resetPuzzle">Reset Puzzle</button>
+  </div>
 </div>
 
 <script>
@@ -92,9 +102,15 @@ const statusEl = document.getElementById("status");
 const difficultyEl = document.getElementById("difficulty");
 const timerEl = document.getElementById("timer");
 const nextPuzzleBtn = document.getElementById("nextPuzzle");
+const nextMoveBtn = document.getElementById("nextMove");
+const resetPuzzleBtn = document.getElementById("resetPuzzle");
 
 let timerInterval = null;
 let secondsElapsed = 0;
+
+let currentMoveIndex = 0;
+let solutionMoves = [];
+let puzzleGlobal = null;
 
 function updateTimer() {
   secondsElapsed++;
@@ -108,54 +124,82 @@ function resetTimer() {
   timerInterval = setInterval(updateTimer, 1000);
 }
 
-// Function to load puzzle from Cloudflare Worker endpoint (update URL if needed)
 async function loadPuzzle() {
   try {
     resetTimer();
     statusEl.textContent = "Loading puzzle…";
     difficultyEl.textContent = "—";
+    currentMoveIndex = 0;
+    solutionMoves = [];
+    puzzleGlobal = null;
 
     const response = await fetch("https://chess-puzzle-proxy.kahitiedwin.workers.dev");
-
     if (!response.ok) throw new Error("Network response was not ok");
-
     const puzzle = await response.json();
 
     console.log("Puzzle data:", puzzle);
 
-    const actualPuzzle = puzzle.puzzle || puzzle;
+    puzzleGlobal = puzzle;
 
-    // Show difficulty (rating)
+    const actualPuzzle = puzzle.puzzle || puzzle;
     difficultyEl.textContent = actualPuzzle.rating || "Unknown";
 
-    // Load PGN from puzzle.game.pgn, if present
     const pgn = puzzle.game?.pgn || null;
 
+    game = new Chess();
+
     if (pgn) {
-      game = new Chess();
       const loaded = game.load_pgn(pgn);
       if (!loaded) {
         console.warn("Failed to load PGN");
         game.reset();
       }
-      board.position(game.fen());
-    } else {
-      game = new Chess();
-      board.start();
     }
 
-    // Show moves count if solution array present
+    board.position(game.fen());
+
     if (actualPuzzle.solution && Array.isArray(actualPuzzle.solution)) {
-      statusEl.textContent = "Puzzle loaded. Moves to solve: " + actualPuzzle.solution.length;
+      solutionMoves = actualPuzzle.solution;
+      statusEl.textContent = `Puzzle loaded. Moves to solve: ${solutionMoves.length}`;
     } else {
       statusEl.textContent = "Puzzle loaded.";
     }
 
     resetTimer();
-
   } catch (e) {
     statusEl.textContent = "Error loading puzzle: " + e.message;
   }
+}
+
+function playNextMove() {
+  if (currentMoveIndex >= solutionMoves.length) {
+    statusEl.textContent = "Puzzle solved or no more moves.";
+    return;
+  }
+  const move = solutionMoves[currentMoveIndex];
+  const result = game.move(move);
+  if (result === null) {
+    statusEl.textContent = "Invalid move in solution: " + move;
+    return;
+  }
+  board.position(game.fen());
+  currentMoveIndex++;
+  statusEl.textContent = `Move ${currentMoveIndex} played: ${move}`;
+}
+
+function resetPuzzle() {
+  currentMoveIndex = 0;
+  game.reset();
+
+  if (puzzleGlobal) {
+    const pgn = puzzleGlobal.game?.pgn || null;
+    if (pgn) {
+      game.load_pgn(pgn);
+    }
+  }
+
+  board.position(game.fen());
+  statusEl.textContent = "Puzzle reset.";
 }
 
 $(function () {
@@ -167,9 +211,11 @@ $(function () {
     },
   });
 
-  loadPuzzle();
-
   nextPuzzleBtn.onclick = loadPuzzle;
+  nextMoveBtn.onclick = playNextMove;
+  resetPuzzleBtn.onclick = resetPuzzle;
+
+  loadPuzzle();
 });
 </script>
 </body>
