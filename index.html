@@ -57,7 +57,7 @@
 </style>
 </head>
 <body>
-<h1>♟ Daily Chess Puzzle v11.0</h1>
+<h1>♟ Daily Chess Puzzle v12.0</h1>
 
 <div id="board"></div>
 
@@ -124,19 +124,31 @@ async function loadPuzzle() {
 
     console.log("Puzzle data:", puzzle);
 
-    difficultyEl.textContent = puzzle.difficulty || "Unknown";
-    game = new Chess(puzzle.fen);
-    board.position(puzzle.fen);
+    // The actual puzzle object is nested inside puzzle.puzzle
+    const actualPuzzle = puzzle.puzzle || puzzle;
 
-    statusEl.textContent = "Puzzle loaded.";
-    if (puzzle.moves && Array.isArray(puzzle.moves)) {
-      statusEl.textContent += " Moves to solve: " + puzzle.moves.length;
+    // Difficulty might be rating here
+    difficultyEl.textContent = actualPuzzle.rating || "Unknown";
+
+    // Try to find FEN in several possible keys
+    const fen = actualPuzzle.fen || actualPuzzle.position || null;
+
+    if (fen) {
+      game = new Chess(fen);
+      board.position(fen);
+    } else {
+      game = new Chess();
+      board.start();
+    }
+
+    // Solution moves could be under 'solution'
+    if (actualPuzzle.solution && Array.isArray(actualPuzzle.solution)) {
+      statusEl.textContent = "Puzzle loaded. Moves to solve: " + actualPuzzle.solution.length;
+    } else {
+      statusEl.textContent = "Puzzle loaded.";
     }
 
     resetTimer();
-
-    // Setup puzzle move playback (optional)
-    // For demo, just do nothing; you can add move validation/playback later
 
   } catch (e) {
     statusEl.textContent = "Error loading puzzle: " + e.message;
