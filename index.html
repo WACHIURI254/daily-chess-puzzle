@@ -63,7 +63,7 @@
 </style>
 </head>
 <body>
-<h1>♟ Daily Chess Puzzle</h1>
+<h1>♟ Daily Chess Puzzle 13v</h1>
 
 <div id="board"></div>
 
@@ -176,15 +176,22 @@ function playNextMove() {
     statusEl.textContent = "Puzzle solved or no more moves.";
     return;
   }
-  const move = solutionMoves[currentMoveIndex];
-  const result = game.move(move);
-  if (result === null) {
-    statusEl.textContent = "Invalid move in solution: " + move;
+  const moveStr = solutionMoves[currentMoveIndex];
+  // Try SAN move first (allow sloppy parsing)
+  let moveResult = game.move(moveStr, { sloppy: true });
+  if (!moveResult) {
+    // If failed and looks like UCI (e2e4), try from/to
+    if (moveStr.length === 4) {
+      moveResult = game.move({ from: moveStr.substring(0, 2), to: moveStr.substring(2, 4) });
+    }
+  }
+  if (!moveResult) {
+    statusEl.textContent = "Invalid move in solution: " + moveStr;
     return;
   }
   board.position(game.fen());
   currentMoveIndex++;
-  statusEl.textContent = `Move ${currentMoveIndex} played: ${move}`;
+  statusEl.textContent = `Move ${currentMoveIndex} played: ${moveStr}`;
 }
 
 function resetPuzzle() {
