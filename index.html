@@ -116,7 +116,7 @@ async function loadPuzzle() {
     difficultyEl.textContent = "—";
 
     // Replace this URL with your own puzzle API endpoint
-    const response = await fetch("https://daily-chess-puzzle.kogzy.workers.dev");
+    const response = await fetch("https://chess-puzzle-proxy.kahitiedwin.workers.dev");
 
     if (!response.ok) throw new Error("Network response was not ok");
 
@@ -153,4 +153,5 @@ $(function () {
 </script>
 </body>
 </html>
+
 
